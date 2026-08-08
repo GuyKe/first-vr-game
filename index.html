@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Firelight Clearing</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #05060a;
+        height: 100%;
+      }
+      #info {
+        position: absolute;
+        top: 12px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        color: #f2e8d5;
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+        pointer-events: none;
+        z-index: 1;
+        text-shadow: 0 0 6px #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="info">
+      Firelight Clearing — drag to look, WASD to walk, or press "Enter VR" on
+      a Meta Quest browser
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
