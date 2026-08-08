@@ -3,7 +3,7 @@ import * as THREE from "three";
 // Kept outside the forest floor disc (radius 120, scaled by WORLD_SCALE in
 // main.js — see environment.js and constants.js) so the two grounds never
 // intersect.
-const BASEPLATE_CENTER = new THREE.Vector3(0, 0, -220);
+const BASEPLATE_CENTER = new THREE.Vector3(0, 0, -260);
 const BASEPLATE_RADIUS = 6;
 const SPAWN_OFFSET = new THREE.Vector3(0, 0, 4);
 const DOT_OFFSET = new THREE.Vector3(0, 0, -4);

@@ -70,9 +70,16 @@ export function buildPickups(worldGroup, interactions, inventory) {
       position: worldPosition,
       radius: PICKUP_RADIUS,
       getLabel: () => `Press E to pick up ${kind}`,
+      // Grabbable items are pulled into the player's hand by GrabSystem in
+      // VR (point + hold trigger) instead of the plain proximity tap.
+      grabbable: true,
+      mesh,
       onInteract: () => {
         inventory[inventoryKey] += 1;
-        group.remove(mesh);
+        // mesh may have been reparented to the dolly by GrabSystem's pull
+        // animation, so remove it from wherever it currently lives rather
+        // than assuming it's still under `group`.
+        mesh.parent?.remove(mesh);
         interactions.unregister(item);
       },
     });

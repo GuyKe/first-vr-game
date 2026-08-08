@@ -8,6 +8,7 @@ import { WalkTutorial } from "./scene/tutorial.js";
 import { DayNightCycle } from "./scene/dayNightCycle.js";
 import { DesktopControls } from "./xr/desktopControls.js";
 import { VRLocomotion } from "./xr/vrLocomotion.js";
+import { GrabSystem } from "./xr/grabSystem.js";
 import { DomMenu } from "./ui/domMenu.js";
 import { WorldMenu } from "./ui/worldMenu.js";
 import { InteractionManager } from "./gameplay/interactions.js";
@@ -43,7 +44,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.xr.enabled = true;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.3;
 document.body.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
 
@@ -90,9 +91,11 @@ interactions.register({
 
 const desktopControls = new DesktopControls(dolly, camera, renderer.domElement);
 const vrLocomotion = new VRLocomotion(renderer, dolly, camera);
+const grabSystem = new GrabSystem(renderer, dolly, interactions);
 
 desktopControls.enabled = false;
 vrLocomotion.enabled = false;
+grabSystem.enabled = false;
 
 const infoEl = document.getElementById("info");
 const promptEl = document.getElementById("prompt");
@@ -112,6 +115,7 @@ function enterMenu() {
   goToForestSpawn();
   desktopControls.enabled = false;
   vrLocomotion.enabled = false;
+  grabSystem.enabled = false;
   infoEl.textContent = "Fifi's Forest";
   promptEl.classList.remove("visible");
   hudEl.classList.remove("visible");
@@ -133,6 +137,7 @@ function enterPlay() {
   domMenu.hide();
   worldMenu.hide();
   vrLocomotion.enabled = true;
+  grabSystem.enabled = true;
   infoEl.textContent = "Fifi's Forest";
   hudEl.classList.add("visible");
   if (!renderer.xr.isPresenting) {
@@ -146,6 +151,7 @@ function enterTutorial() {
   domMenu.hide();
   worldMenu.hide();
   vrLocomotion.enabled = true;
+  grabSystem.enabled = false;
   infoEl.textContent = "Walk to the glowing dot";
   hudEl.classList.remove("visible");
   desktopControls.resetOrientation(0, 0);
@@ -194,7 +200,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 function onControllerSelect() {
-  if (mode !== "menu") interactions.interact();
+  if (mode === "menu") return;
+  // Grabbable pickups (sticks/rocks) are handled by GrabSystem's point +
+  // hold-to-pull mechanic instead of an instant proximity tap.
+  if (interactions.nearby?.grabbable) return;
+  interactions.interact();
 }
 renderer.xr.getController(0).addEventListener("selectstart", onControllerSelect);
 renderer.xr.getController(1).addEventListener("selectstart", onControllerSelect);
@@ -215,6 +225,7 @@ renderer.setAnimationLoop(() => {
 
   desktopControls.update(delta);
   vrLocomotion.update(delta);
+  grabSystem.update(delta);
   worldMenu.update();
   walkTutorial.update(delta);
   dayNight.update(delta);

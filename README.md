@@ -42,8 +42,9 @@ to serve over HTTPS automatically:
 In VR, the menu appears as a 3D panel in front of you — point a controller
 at PLAY or TUTORIAL and pull the trigger to select. Movement is smooth
 joystick locomotion: push the left thumbstick to walk in the direction
-you're looking. Point at a stick, rock, or the bonfire and pull the trigger
-to interact.
+you're looking. Point at a stick or rock and a line appears — hold the
+trigger and it flies into your hand. Walk up to the bonfire and pull the
+trigger to feed it a stick.
 
 ## Project structure
 
@@ -66,6 +67,7 @@ src/
   xr/
     desktopControls.js      Mouse-look + WASD fallback for non-VR testing
     vrLocomotion.js           Joystick-driven smooth VR locomotion + controller models
+    grabSystem.js              Point-and-hold telekinetic grab for pickups (VR only)
 ```
 
 ## Building for production
