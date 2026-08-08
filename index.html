@@ -30,13 +30,112 @@
         z-index: 1;
         text-shadow: 0 0 6px #000;
       }
+
+      #menu-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(20, 12, 6, 0.55) 0%,
+          rgba(3, 4, 9, 0.85) 100%
+        );
+        font-family: system-ui, sans-serif;
+      }
+
+      .menu-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+        padding: 40px 52px;
+        border-radius: 16px;
+        background: rgba(10, 8, 6, 0.7);
+        border: 1px solid rgba(255, 154, 61, 0.35);
+        box-shadow: 0 0 60px rgba(255, 120, 40, 0.15);
+        max-width: 420px;
+        text-align: center;
+      }
+
+      .menu-panel[hidden] {
+        display: none;
+      }
+
+      #menu-overlay[hidden] {
+        display: none;
+      }
+
+      .menu-title {
+        margin: 0;
+        font-size: 40px;
+        color: #ffcf8e;
+        text-shadow: 0 0 18px rgba(255, 140, 40, 0.6);
+        letter-spacing: 0.03em;
+      }
+
+      .menu-button {
+        width: 220px;
+        padding: 14px 0;
+        font-size: 18px;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+        color: #1a0f06;
+        background: linear-gradient(180deg, #ffb960, #ff7a29);
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+      }
+
+      .menu-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(255, 122, 41, 0.4);
+      }
+
+      .menu-button.secondary {
+        background: transparent;
+        color: #ffcf8e;
+        border: 1px solid rgba(255, 154, 61, 0.5);
+      }
+
+      .tutorial-text {
+        color: #f2e8d5;
+        font-size: 15px;
+        line-height: 1.6;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
-    <div id="info">
-      Firelight Clearing — drag to look, WASD to walk, or press "Enter VR" on
-      a Meta Quest browser
+    <div id="info">Fifi's Forest</div>
+
+    <div id="menu-overlay">
+      <div class="menu-panel" id="main-menu">
+        <h1 class="menu-title">Fifi&rsquo;s Forest</h1>
+        <button class="menu-button" id="btn-play">PLAY</button>
+        <button class="menu-button secondary" id="btn-tutorial">
+          TUTORIAL
+        </button>
+      </div>
+
+      <div class="menu-panel" id="tutorial-menu" hidden>
+        <h1 class="menu-title">Tutorial</h1>
+        <p class="tutorial-text">
+          Click into the window, then use <strong>WASD</strong> to walk and
+          <strong>drag the mouse</strong> to look around.
+        </p>
+        <p class="tutorial-text">
+          On a Meta Quest headset: press <strong>Enter VR</strong>, then hold
+          either controller&rsquo;s trigger to aim a teleport marker at the
+          ground and release to move there.
+        </p>
+        <button class="menu-button" id="btn-back">BACK</button>
+      </div>
     </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

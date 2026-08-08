@@ -5,6 +5,8 @@ import { buildForest } from "./scene/forest.js";
 import { Bonfire } from "./scene/bonfire.js";
 import { DesktopControls } from "./xr/desktopControls.js";
 import { TeleportControls } from "./xr/teleport.js";
+import { DomMenu } from "./ui/domMenu.js";
+import { WorldMenu } from "./ui/worldMenu.js";
 
 const scene = new THREE.Scene();
 
@@ -43,11 +45,48 @@ scene.add(bonfire.group);
 const desktopControls = new DesktopControls(dolly, camera, renderer.domElement);
 const teleportControls = new TeleportControls(renderer, scene, dolly, floorMeshes);
 
+// Movement stays off until the player clears the main menu.
+desktopControls.enabled = false;
+teleportControls.enabled = false;
+let gameStarted = false;
+
+function startGame() {
+  gameStarted = true;
+  domMenu.hide();
+  worldMenu.hide();
+  teleportControls.enabled = true;
+  if (!renderer.xr.isPresenting) {
+    desktopControls.enabled = true;
+    renderer.domElement.requestPointerLock();
+  }
+}
+
+const domMenu = new DomMenu({
+  onPlay: startGame,
+  onTutorial: () => domMenu.showTutorial(),
+  onBack: () => domMenu.showMain(),
+});
+
+const worldMenu = new WorldMenu(renderer, dolly, scene, {
+  onPlay: startGame,
+  onTutorial: () => worldMenu.showTutorial(),
+  onBack: () => worldMenu.showMain(),
+});
+
 renderer.xr.addEventListener("sessionstart", () => {
   desktopControls.enabled = false;
+  if (!gameStarted) {
+    domMenu.hide();
+    worldMenu.showMain();
+  }
 });
 renderer.xr.addEventListener("sessionend", () => {
-  desktopControls.enabled = true;
+  if (gameStarted) {
+    desktopControls.enabled = true;
+  } else {
+    worldMenu.hide();
+    domMenu.showMain();
+  }
 });
 
 window.addEventListener("resize", () => {
@@ -64,6 +103,7 @@ renderer.setAnimationLoop(() => {
 
   desktopControls.update(delta);
   teleportControls.update();
+  worldMenu.update();
   bonfire.update(delta, elapsed);
 
   renderer.render(scene, camera);

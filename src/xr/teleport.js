@@ -15,6 +15,7 @@ export class TeleportControls {
     this.raycaster = new THREE.Raycaster();
     this._tempMatrix = new THREE.Matrix4();
     this.activeController = null;
+    this.enabled = true;
 
     this._buildMarker(scene);
     this._buildControllers(scene);
@@ -51,6 +52,7 @@ export class TeleportControls {
       controller.add(this._buildLine());
       controller.userData.selecting = false;
       controller.addEventListener("selectstart", () => {
+        if (!this.enabled) return;
         controller.userData.selecting = true;
         controller.getObjectByName("teleportLine").visible = true;
         this.activeController = controller;
@@ -58,7 +60,7 @@ export class TeleportControls {
       controller.addEventListener("selectend", () => {
         controller.userData.selecting = false;
         controller.getObjectByName("teleportLine").visible = false;
-        if (this.marker.visible) {
+        if (this.enabled && this.marker.visible) {
           this.dolly.position.x = this.marker.position.x;
           this.dolly.position.z = this.marker.position.z;
         }
