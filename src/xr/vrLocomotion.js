@@ -21,6 +21,12 @@ export class VRLocomotion {
       const grip = renderer.xr.getControllerGrip(i);
       grip.add(modelFactory.createControllerModel(grip));
       this.dolly.add(grip);
+
+      // The target-ray space (used for pointing at menu buttons — see
+      // WorldMenu) gets its local transform updated by WebXR each frame,
+      // but that only becomes a correct world-space position via the normal
+      // parent chain, so it must be parented under the dolly like the grip.
+      this.dolly.add(renderer.xr.getController(i));
     }
   }
 
