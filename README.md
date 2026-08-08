@@ -2,14 +2,16 @@
 
 An atmospheric WebXR experience for Meta Quest, built with [Three.js](https://threejs.org/).
 
-The player spawns at the edge of a sand clearing in the middle of a dark
-forest. Trees ring the clearing on every side; a bonfire burns at its
-center, lighting the surrounding sand and the nearest trees.
+The player spawns at sunrise at the edge of a sand clearing in the middle of
+a forest that's noticeably larger than you are. Trees ring the clearing on
+every side; a bonfire sits cold at its center. Sticks and rocks are
+scattered around — pick sticks up and feed them to the fire to light it and
+push back the dark; each stick buys about a minute of burn time. The sky
+cycles through a full day and night as you play.
 
-This is a starting scene, not a full game yet — no objectives beyond the
-walking tutorial, just the place. Good next steps: ambient sound, fire-fed
-light that reacts to a day/night or fuel system, things hidden in the tree
-line, or a reason to leave the fire.
+This is a starting scene, not a full game yet. Good next steps: a reason to
+venture into the tree line, more uses for rocks, a way to see how much fuel
+is left without standing at the fire, ambient sound.
 
 ## Running it
 
@@ -23,7 +25,8 @@ bonfire, **TUTORIAL** takes you to a bare practice platform where you walk to
 a glowing dot to learn the controls, then return to the menu automatically.
 
 On desktop, click into the window and use **WASD** to walk and **mouse
-drag** to look around.
+drag** to look around. Walk up to a stick, rock, or the bonfire and press
+**E** to interact — a prompt appears whenever something is in reach.
 
 ## Testing on a Meta Quest headset
 
@@ -39,24 +42,30 @@ to serve over HTTPS automatically:
 In VR, the menu appears as a 3D panel in front of you — point a controller
 at PLAY or TUTORIAL and pull the trigger to select. Movement is smooth
 joystick locomotion: push the left thumbstick to walk in the direction
-you're looking.
+you're looking. Point at a stick, rock, or the bonfire and pull the trigger
+to interact.
 
 ## Project structure
 
 ```
 src/
-  main.js               Scene/state setup, render loop, VR/desktop wiring
+  main.js                Scene/state setup, render loop, VR/desktop wiring
+  constants.js            Shared tuning constants (world scale)
   scene/
-    environment.js       Forest floor, sand clearing, fog, ambient light
-    forest.js             Instanced procedural tree scattering
-    bonfire.js            Fire logs, flame sprites, embers, flickering light
-    tutorial.js            Walk-to-the-dot practice platform
+    environment.js         Forest floor and sand clearing geometry
+    dayNightCycle.js        Sky/fog/sun-moon lighting cycle
+    forest.js                Instanced procedural tree scattering
+    bonfire.js               Fire logs, flame/embers, fuel timer, unlit by default
+    tutorial.js               Walk-to-the-dot practice platform
+  gameplay/
+    interactions.js          Shared "nearby + press to interact" system
+    pickups.js                 Scattered stick/rock pickups
   ui/
-    domMenu.js             Flat-screen HTML main menu overlay
-    worldMenu.js            In-world 3D main menu, shown inside VR sessions
+    domMenu.js               Flat-screen HTML main menu overlay
+    worldMenu.js              In-world 3D main menu, shown inside VR sessions
   xr/
-    desktopControls.js    Mouse-look + WASD fallback for non-VR testing
-    vrLocomotion.js         Joystick-driven smooth VR locomotion + controller models
+    desktopControls.js      Mouse-look + WASD fallback for non-VR testing
+    vrLocomotion.js           Joystick-driven smooth VR locomotion + controller models
 ```
 
 ## Building for production

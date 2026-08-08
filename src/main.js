@@ -1,16 +1,21 @@
 import * as THREE from "three";
 import { VRButton } from "three/examples/jsm/webxr/VRButton.js";
+import { WORLD_SCALE } from "./constants.js";
 import { buildEnvironment } from "./scene/environment.js";
 import { buildForest } from "./scene/forest.js";
 import { Bonfire } from "./scene/bonfire.js";
 import { WalkTutorial } from "./scene/tutorial.js";
+import { DayNightCycle } from "./scene/dayNightCycle.js";
 import { DesktopControls } from "./xr/desktopControls.js";
 import { VRLocomotion } from "./xr/vrLocomotion.js";
 import { DomMenu } from "./ui/domMenu.js";
 import { WorldMenu } from "./ui/worldMenu.js";
+import { InteractionManager } from "./gameplay/interactions.js";
+import { buildPickups } from "./gameplay/pickups.js";
 
 const FOREST_SPAWN_POSITION = new THREE.Vector3(0, 1.6, 3.5);
 const FOREST_SPAWN_YAW = Math.PI;
+const BONFIRE_INTERACT_RADIUS = 2.4;
 
 const scene = new THREE.Scene();
 
@@ -23,7 +28,9 @@ const camera = new THREE.PerspectiveCamera(
 
 // The dolly is the "player" — moving/rotating it is how both desktop
 // controls and VR locomotion relocate the player, while the camera itself
-// stays under XR's control for head tracking.
+// stays under XR's control for head tracking. It lives directly in `scene`,
+// unscaled, so spawn coordinates stay simple; the environment is scaled up
+// around it instead (see worldGroup below) to make the player feel smaller.
 const dolly = new THREE.Group();
 dolly.add(camera);
 dolly.position.copy(FOREST_SPAWN_POSITION);
@@ -40,13 +47,46 @@ renderer.toneMappingExposure = 1.1;
 document.body.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
 
-buildEnvironment(scene);
-buildForest(scene);
+const dayNight = new DayNightCycle(scene);
+
+const worldGroup = new THREE.Group();
+worldGroup.scale.setScalar(WORLD_SCALE);
+scene.add(worldGroup);
+
+buildEnvironment(worldGroup);
+buildForest(worldGroup);
 
 const bonfire = new Bonfire();
-scene.add(bonfire.group);
+worldGroup.add(bonfire.group);
 
+// The tutorial platform is a separate isolated space, deliberately left
+// outside worldGroup so its spawn/dot coordinates stay simple (unscaled,
+// matching the dolly's own coordinate space).
 const walkTutorial = new WalkTutorial(scene, dolly);
+
+const inventory = { sticks: 0, rocks: 0 };
+const interactions = new InteractionManager(dolly);
+buildPickups(worldGroup, interactions, inventory);
+
+worldGroup.updateMatrixWorld(true);
+const bonfireWorldPosition = bonfire.group.getWorldPosition(new THREE.Vector3());
+interactions.register({
+  position: bonfireWorldPosition,
+  radius: BONFIRE_INTERACT_RADIUS,
+  getLabel: () => {
+    if (inventory.sticks > 0) {
+      return `Press E to add a stick to the fire (have ${inventory.sticks})`;
+    }
+    return bonfire.isLit
+      ? `Fire burning — ${Math.ceil(bonfire.remainingSeconds)}s left`
+      : "Find a stick to light the fire";
+  },
+  onInteract: () => {
+    if (inventory.sticks <= 0) return;
+    inventory.sticks -= 1;
+    bonfire.addFuel(1);
+  },
+});
 
 const desktopControls = new DesktopControls(dolly, camera, renderer.domElement);
 const vrLocomotion = new VRLocomotion(renderer, dolly, camera);
@@ -55,6 +95,10 @@ desktopControls.enabled = false;
 vrLocomotion.enabled = false;
 
 const infoEl = document.getElementById("info");
+const promptEl = document.getElementById("prompt");
+const hudEl = document.getElementById("hud");
+
+let mode = "menu"; // "menu" | "play" | "tutorial"
 
 function goToForestSpawn() {
   dolly.position.copy(FOREST_SPAWN_POSITION);
@@ -63,11 +107,14 @@ function goToForestSpawn() {
 }
 
 function enterMenu() {
+  mode = "menu";
   walkTutorial.hide();
   goToForestSpawn();
   desktopControls.enabled = false;
   vrLocomotion.enabled = false;
   infoEl.textContent = "Fifi's Forest";
+  promptEl.classList.remove("visible");
+  hudEl.classList.remove("visible");
   // Pointer lock routes all clicks to the locked element (the canvas)
   // regardless of what's visually on top, so the menu buttons underneath
   // would never receive clicks if we left it engaged.
@@ -82,10 +129,12 @@ function enterMenu() {
 }
 
 function enterPlay() {
+  mode = "play";
   domMenu.hide();
   worldMenu.hide();
   vrLocomotion.enabled = true;
   infoEl.textContent = "Fifi's Forest";
+  hudEl.classList.add("visible");
   if (!renderer.xr.isPresenting) {
     desktopControls.enabled = true;
     renderer.domElement.requestPointerLock();
@@ -93,10 +142,12 @@ function enterPlay() {
 }
 
 function enterTutorial() {
+  mode = "tutorial";
   domMenu.hide();
   worldMenu.hide();
   vrLocomotion.enabled = true;
   infoEl.textContent = "Walk to the glowing dot";
+  hudEl.classList.remove("visible");
   desktopControls.resetOrientation(0, 0);
   walkTutorial.show(enterMenu);
   if (!renderer.xr.isPresenting) {
@@ -122,16 +173,31 @@ const worldMenu = new WorldMenu(renderer, dolly, camera, scene, {
 
 renderer.xr.addEventListener("sessionstart", () => {
   desktopControls.enabled = false;
+  if (mode === "menu") {
+    domMenu.hide();
+    worldMenu.show();
+  }
 });
 renderer.xr.addEventListener("sessionend", () => {
-  if (!worldMenu.group.visible) {
+  if (mode === "menu") {
+    // Refresh onto the flat-screen menu presentation.
+    enterMenu();
+  } else {
     // Player was mid-play or mid-tutorial when they exited VR — resume on
     // the flat screen exactly where they left off.
     desktopControls.enabled = true;
-  } else {
-    enterMenu();
   }
 });
+
+document.addEventListener("keydown", (e) => {
+  if (e.code === "KeyE" && mode !== "menu") interactions.interact();
+});
+
+function onControllerSelect() {
+  if (mode !== "menu") interactions.interact();
+}
+renderer.xr.getController(0).addEventListener("selectstart", onControllerSelect);
+renderer.xr.getController(1).addEventListener("selectstart", onControllerSelect);
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -151,7 +217,22 @@ renderer.setAnimationLoop(() => {
   vrLocomotion.update(delta);
   worldMenu.update();
   walkTutorial.update(delta);
+  dayNight.update(delta);
   bonfire.update(delta, elapsed);
+
+  if (mode !== "menu") {
+    interactions.update();
+    if (interactions.nearby) {
+      promptEl.textContent = interactions.nearby.getLabel();
+      promptEl.classList.add("visible");
+    } else {
+      promptEl.classList.remove("visible");
+    }
+  }
+
+  if (mode === "play") {
+    hudEl.textContent = `Sticks: ${inventory.sticks}   Rocks: ${inventory.rocks}`;
+  }
 
   renderer.render(scene, camera);
 });

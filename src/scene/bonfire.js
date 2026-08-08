@@ -24,15 +24,30 @@ function makeGlowTexture(innerColor, outerColor) {
 }
 
 const EMBER_COUNT = 60;
+export const SECONDS_PER_STICK = 60;
 
 export class Bonfire {
   constructor() {
     this.group = new THREE.Group();
+    this.fireGroup = new THREE.Group();
+    this.group.add(this.fireGroup);
+
     this._buildLogs();
     this._buildFlame();
     this._buildEmbers();
     this._buildLight();
     this._clock = 0;
+
+    this.isLit = false;
+    this.remainingSeconds = 0;
+    this.fireGroup.visible = false;
+  }
+
+  /** Feeds the fire, igniting it if it was out. Each stick adds burn time. */
+  addFuel(stickCount = 1) {
+    this.remainingSeconds += SECONDS_PER_STICK * stickCount;
+    this.isLit = true;
+    this.fireGroup.visible = true;
   }
 
   _buildLogs() {
@@ -79,7 +94,7 @@ export class Bonfire {
       );
       const scale = 1.1 - i * 0.25;
       sprite.scale.set(scale, scale * 1.4, 1);
-      this.group.add(sprite);
+      this.fireGroup.add(sprite);
       this.flameSprites.push(sprite);
     }
   }
@@ -111,17 +126,27 @@ export class Bonfire {
       blending: THREE.AdditiveBlending,
     });
     this.embers = new THREE.Points(geo, mat);
-    this.group.add(this.embers);
+    this.fireGroup.add(this.embers);
   }
 
   _buildLight() {
     this.light = new THREE.PointLight(0xff7a29, 6, 18, 2);
     this.light.position.y = 1.1;
     this.light.castShadow = true;
-    this.group.add(this.light);
+    this.fireGroup.add(this.light);
   }
 
   update(delta, elapsed) {
+    if (!this.isLit) return;
+
+    this.remainingSeconds -= delta;
+    if (this.remainingSeconds <= 0) {
+      this.remainingSeconds = 0;
+      this.isLit = false;
+      this.fireGroup.visible = false;
+      return;
+    }
+
     this._clock += delta;
 
     // Flicker the light and flame scale with layered sine noise.

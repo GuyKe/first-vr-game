@@ -100,10 +100,49 @@
         color: #ffcf8e;
         border: 1px solid rgba(255, 154, 61, 0.5);
       }
+
+      #prompt {
+        position: absolute;
+        bottom: 90px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        color: #ffe9c7;
+        font-family: system-ui, sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        pointer-events: none;
+        z-index: 1;
+        text-shadow: 0 0 6px #000;
+        display: none;
+      }
+
+      #prompt.visible {
+        display: block;
+      }
+
+      #hud {
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+        color: #f2e8d5;
+        font-family: system-ui, sans-serif;
+        font-size: 14px;
+        pointer-events: none;
+        z-index: 1;
+        text-shadow: 0 0 6px #000;
+        display: none;
+      }
+
+      #hud.visible {
+        display: block;
+      }
     </style>
   </head>
   <body>
     <div id="info">Fifi's Forest</div>
+    <div id="prompt"></div>
+    <div id="hud"></div>
 
     <div id="menu-overlay">
       <div class="menu-panel" id="main-menu">

@@ -3,24 +3,15 @@ import * as THREE from "three";
 export const CLEARING_RADIUS = 9;
 
 /**
- * Builds the night forest floor, the sand clearing, fog and ambient
- * moonlight.
+ * Builds the forest floor and sand clearing geometry. Sky, fog and lighting
+ * are owned by the day-night cycle (see dayNightCycle.js) since they change
+ * continuously.
  */
 export function buildEnvironment(scene) {
-  scene.background = new THREE.Color(0x030409);
-  scene.fog = new THREE.FogExp2(0x050a12, 0.035);
-
-  const ambient = new THREE.HemisphereLight(0x2a3a5c, 0x0a0a08, 0.55);
-  scene.add(ambient);
-
-  const moon = new THREE.DirectionalLight(0x6f8fc9, 0.25);
-  moon.position.set(-20, 30, -15);
-  scene.add(moon);
-
   const forestFloor = new THREE.Mesh(
     new THREE.CircleGeometry(120, 64),
     new THREE.MeshStandardMaterial({
-      color: 0x101a10,
+      color: 0x1c2a1c,
       roughness: 1,
       metalness: 0,
     }),
