@@ -4,7 +4,7 @@ export const CLEARING_RADIUS = 9;
 
 /**
  * Builds the night forest floor, the sand clearing, fog and ambient
- * moonlight. Returns nothing — mutates the scene directly.
+ * moonlight.
  */
 export function buildEnvironment(scene) {
   scene.background = new THREE.Color(0x030409);
@@ -54,6 +54,4 @@ export function buildEnvironment(scene) {
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.015;
   scene.add(ring);
-
-  return { floorMeshes: [forestFloor, sand] };
 }

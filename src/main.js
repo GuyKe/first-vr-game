@@ -3,10 +3,14 @@ import { VRButton } from "three/examples/jsm/webxr/VRButton.js";
 import { buildEnvironment } from "./scene/environment.js";
 import { buildForest } from "./scene/forest.js";
 import { Bonfire } from "./scene/bonfire.js";
+import { WalkTutorial } from "./scene/tutorial.js";
 import { DesktopControls } from "./xr/desktopControls.js";
-import { TeleportControls } from "./xr/teleport.js";
+import { VRLocomotion } from "./xr/vrLocomotion.js";
 import { DomMenu } from "./ui/domMenu.js";
 import { WorldMenu } from "./ui/worldMenu.js";
+
+const FOREST_SPAWN_POSITION = new THREE.Vector3(0, 1.6, 3.5);
+const FOREST_SPAWN_YAW = Math.PI;
 
 const scene = new THREE.Scene();
 
@@ -18,12 +22,12 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 // The dolly is the "player" — moving/rotating it is how both desktop
-// controls and VR teleportation relocate the player, while the camera
-// itself stays under XR's control for head tracking.
+// controls and VR locomotion relocate the player, while the camera itself
+// stays under XR's control for head tracking.
 const dolly = new THREE.Group();
 dolly.add(camera);
-dolly.position.set(0, 1.6, 3.5);
-dolly.rotation.y = Math.PI;
+dolly.position.copy(FOREST_SPAWN_POSITION);
+dolly.rotation.y = FOREST_SPAWN_YAW;
 scene.add(dolly);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -36,25 +40,65 @@ renderer.toneMappingExposure = 1.1;
 document.body.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
 
-const { floorMeshes } = buildEnvironment(scene);
+buildEnvironment(scene);
 buildForest(scene);
 
 const bonfire = new Bonfire();
 scene.add(bonfire.group);
 
+const walkTutorial = new WalkTutorial(scene, dolly);
+
 const desktopControls = new DesktopControls(dolly, camera, renderer.domElement);
-const teleportControls = new TeleportControls(renderer, scene, dolly, floorMeshes);
+const vrLocomotion = new VRLocomotion(renderer, dolly, camera);
 
-// Movement stays off until the player clears the main menu.
 desktopControls.enabled = false;
-teleportControls.enabled = false;
-let gameStarted = false;
+vrLocomotion.enabled = false;
 
-function startGame() {
-  gameStarted = true;
+const infoEl = document.getElementById("info");
+
+function goToForestSpawn() {
+  dolly.position.copy(FOREST_SPAWN_POSITION);
+  dolly.rotation.y = FOREST_SPAWN_YAW;
+  desktopControls.resetOrientation(FOREST_SPAWN_YAW, 0);
+}
+
+function enterMenu() {
+  walkTutorial.hide();
+  goToForestSpawn();
+  desktopControls.enabled = false;
+  vrLocomotion.enabled = false;
+  infoEl.textContent = "Fifi's Forest";
+  // Pointer lock routes all clicks to the locked element (the canvas)
+  // regardless of what's visually on top, so the menu buttons underneath
+  // would never receive clicks if we left it engaged.
+  if (document.pointerLockElement) document.exitPointerLock();
+  if (renderer.xr.isPresenting) {
+    domMenu.hide();
+    worldMenu.show();
+  } else {
+    worldMenu.hide();
+    domMenu.show();
+  }
+}
+
+function enterPlay() {
   domMenu.hide();
   worldMenu.hide();
-  teleportControls.enabled = true;
+  vrLocomotion.enabled = true;
+  infoEl.textContent = "Fifi's Forest";
+  if (!renderer.xr.isPresenting) {
+    desktopControls.enabled = true;
+    renderer.domElement.requestPointerLock();
+  }
+}
+
+function enterTutorial() {
+  domMenu.hide();
+  worldMenu.hide();
+  vrLocomotion.enabled = true;
+  infoEl.textContent = "Walk to the glowing dot";
+  desktopControls.resetOrientation(0, 0);
+  walkTutorial.show(enterMenu);
   if (!renderer.xr.isPresenting) {
     desktopControls.enabled = true;
     renderer.domElement.requestPointerLock();
@@ -62,30 +106,30 @@ function startGame() {
 }
 
 const domMenu = new DomMenu({
-  onPlay: startGame,
-  onTutorial: () => domMenu.showTutorial(),
-  onBack: () => domMenu.showMain(),
+  onPlay: enterPlay,
+  onTutorial: enterTutorial,
 });
 
-const worldMenu = new WorldMenu(renderer, dolly, scene, {
-  onPlay: startGame,
-  onTutorial: () => worldMenu.showTutorial(),
-  onBack: () => worldMenu.showMain(),
+// WorldMenu reads the camera's world-space facing direction to place itself
+// in front of the player; force a matrix update since no frame has rendered
+// yet to compute it automatically.
+scene.updateMatrixWorld(true);
+
+const worldMenu = new WorldMenu(renderer, dolly, camera, scene, {
+  onPlay: enterPlay,
+  onTutorial: enterTutorial,
 });
 
 renderer.xr.addEventListener("sessionstart", () => {
   desktopControls.enabled = false;
-  if (!gameStarted) {
-    domMenu.hide();
-    worldMenu.showMain();
-  }
 });
 renderer.xr.addEventListener("sessionend", () => {
-  if (gameStarted) {
+  if (!worldMenu.group.visible) {
+    // Player was mid-play or mid-tutorial when they exited VR — resume on
+    // the flat screen exactly where they left off.
     desktopControls.enabled = true;
   } else {
-    worldMenu.hide();
-    domMenu.showMain();
+    enterMenu();
   }
 });
 
@@ -95,6 +139,8 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+enterMenu();
+
 const clock = new THREE.Clock();
 
 renderer.setAnimationLoop(() => {
@@ -102,8 +148,9 @@ renderer.setAnimationLoop(() => {
   const elapsed = clock.elapsedTime;
 
   desktopControls.update(delta);
-  teleportControls.update();
+  vrLocomotion.update(delta);
   worldMenu.update();
+  walkTutorial.update(delta);
   bonfire.update(delta, elapsed);
 
   renderer.render(scene, camera);

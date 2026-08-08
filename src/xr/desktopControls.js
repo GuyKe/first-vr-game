@@ -33,6 +33,12 @@ export class DesktopControls {
     this.pitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, this.pitch));
   }
 
+  /** Re-aims the player's look direction, e.g. after teleporting them to a new spawn. */
+  resetOrientation(yaw = 0, pitch = 0) {
+    this.yaw = yaw;
+    this.pitch = pitch;
+  }
+
   update(delta) {
     if (!this.enabled) return;
 
@@ -44,7 +50,7 @@ export class DesktopControls {
       0,
       -Math.cos(this.yaw),
     );
-    const right = new THREE.Vector3(forward.z, 0, -forward.x);
+    const right = new THREE.Vector3(-forward.z, 0, forward.x);
 
     const move = new THREE.Vector3();
     if (this.keys.has("KeyW")) move.add(forward);
