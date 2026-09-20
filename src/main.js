@@ -13,10 +13,15 @@ import { DomMenu } from "./ui/domMenu.js";
 import { WorldMenu } from "./ui/worldMenu.js";
 import { InteractionManager } from "./gameplay/interactions.js";
 import { buildPickups } from "./gameplay/pickups.js";
+import { buildAxeMesh } from "./gameplay/axe.js";
 
 const FOREST_SPAWN_POSITION = new THREE.Vector3(0, 1.6, 3.5);
 const FOREST_SPAWN_YAW = Math.PI;
 const BONFIRE_INTERACT_RADIUS = 2.4;
+const AXE_STONE_REQUIREMENT = 3;
+const AXE_LOCAL_SPAWN_POSITION = new THREE.Vector3(1.4, 0.02, 0.6);
+const AXE_PICKUP_RADIUS = 1.3;
+const CHOP_RADIUS = 2.0;
 
 const scene = new THREE.Scene();
 
@@ -55,7 +60,7 @@ worldGroup.scale.setScalar(WORLD_SCALE);
 scene.add(worldGroup);
 
 buildEnvironment(worldGroup);
-buildForest(worldGroup);
+const treePositions = buildForest(worldGroup);
 
 const bonfire = new Bonfire();
 worldGroup.add(bonfire.group);
@@ -65,7 +70,7 @@ worldGroup.add(bonfire.group);
 // matching the dolly's own coordinate space).
 const walkTutorial = new WalkTutorial(scene, dolly);
 
-const inventory = { sticks: 0, rocks: 0 };
+const inventory = { sticks: 0, rocks: 0, wood: 0 };
 const interactions = new InteractionManager(dolly);
 buildPickups(worldGroup, interactions, inventory);
 
@@ -88,6 +93,57 @@ interactions.register({
     bonfire.addFuel(1);
   },
 });
+
+let hasAxe = false;
+let axeSpawned = false;
+
+function enableTreeChopping() {
+  for (const { x, z } of treePositions) {
+    interactions.register({
+      position: new THREE.Vector3(x * WORLD_SCALE, 0, z * WORLD_SCALE),
+      radius: CHOP_RADIUS,
+      getLabel: () => "Press E to chop (+1 wood)",
+      onInteract: () => {
+        inventory.wood += 1;
+      },
+    });
+  }
+}
+
+/** Crafted from 3 stones, appears by the fire. Grab it (VR) or walk up and
+ *  press E (desktop) to equip it, which unlocks chopping trees for wood. */
+function spawnAxe() {
+  const mesh = buildAxeMesh();
+  mesh.position.copy(AXE_LOCAL_SPAWN_POSITION);
+  worldGroup.add(mesh);
+  worldGroup.updateMatrixWorld(true);
+  const worldPosition = mesh.getWorldPosition(new THREE.Vector3());
+
+  function equipAxe() {
+    if (hasAxe) return;
+    hasAxe = true;
+    interactions.unregister(axeItem);
+    enableTreeChopping();
+  }
+
+  const axeItem = interactions.register({
+    position: worldPosition,
+    radius: AXE_PICKUP_RADIUS,
+    grabbable: true,
+    holdable: true,
+    mesh,
+    getLabel: () => "Press E to pick up the stone axe",
+    // Desktop has no visible hand model, so the axe just vanishes like any
+    // other pickup once equipped.
+    onInteract: () => {
+      mesh.parent?.remove(mesh);
+      equipAxe();
+    },
+    // VR: GrabSystem has already parked the mesh in the grabbing hand's
+    // grip by the time this fires, so it stays visible and rides along.
+    onEquip: equipAxe,
+  });
+}
 
 const desktopControls = new DesktopControls(dolly, camera, renderer.domElement);
 const vrLocomotion = new VRLocomotion(renderer, dolly, camera);
@@ -242,7 +298,11 @@ renderer.setAnimationLoop(() => {
   }
 
   if (mode === "play") {
-    hudEl.textContent = `Sticks: ${inventory.sticks}   Rocks: ${inventory.rocks}`;
+    if (!axeSpawned && inventory.rocks >= AXE_STONE_REQUIREMENT) {
+      axeSpawned = true;
+      spawnAxe();
+    }
+    hudEl.textContent = `Sticks: ${inventory.sticks}   Stone: ${inventory.rocks}   Wood: ${inventory.wood}`;
   }
 
   renderer.render(scene, camera);

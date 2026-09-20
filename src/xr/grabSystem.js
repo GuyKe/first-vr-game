@@ -9,6 +9,10 @@ const GRAB_LINE_COLOR = 0x9fe8ff;
  * rock and a line appears; hold the trigger and it flies into your hand
  * over GRAB_DURATION, completing the same pickup as a proximity tap would.
  * Releasing the trigger early snaps it back to where it started.
+ *
+ * Items marked `holdable` (the axe) skip the consumable pickup path on
+ * arrival and instead get parked permanently in the grabbing controller's
+ * grip, so they visibly ride along in the player's hand from then on.
  */
 export class GrabSystem {
   constructor(renderer, dolly, interactions) {
@@ -56,12 +60,15 @@ export class GrabSystem {
     this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(this._tempMatrix);
 
     const items = this._grabbableItems();
+    // Recursive: an item's mesh may be a multi-part group (e.g. the axe's
+    // handle + head), and InteractionManager.register tags every part with
+    // userData.interactionItem so any hit resolves back to its item.
     const hits = this.raycaster.intersectObjects(
       items.map((item) => item.mesh),
-      false,
+      true,
     );
     if (hits.length === 0) return null;
-    const item = items.find((candidate) => candidate.mesh === hits[0].object);
+    const item = hits[0].object.userData.interactionItem;
     return item ? { item, distance: hits[0].distance } : null;
   }
 
@@ -125,9 +132,24 @@ export class GrabSystem {
       pull.mesh.position.lerpVectors(pull.startLocalPosition, handLocalPosition, t);
 
       if (t >= 1) {
-        pull.item.onInteract();
+        if (pull.item.holdable) {
+          this._equip(i, pull);
+        } else {
+          pull.item.onInteract();
+        }
         this._pulls[i] = null;
       }
     }
+  }
+
+  /** Parks a holdable item (the axe) in the grabbing hand permanently. */
+  _equip(i, pull) {
+    const grip = this.renderer.xr.getControllerGrip(i);
+    grip.add(pull.mesh);
+    // A fixed, natural-looking grip pose — simpler and more reliable than
+    // preserving whatever transform the pull animation happened to end on.
+    pull.mesh.position.set(0, 0, -0.05);
+    pull.mesh.rotation.set(Math.PI / 2, 0, 0);
+    pull.item.onEquip?.();
   }
 }

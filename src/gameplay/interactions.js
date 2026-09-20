@@ -12,6 +12,13 @@ export class InteractionManager {
 
   register(item) {
     this.items.push(item);
+    // Tag the mesh (and any children, e.g. a multi-part axe model) with a
+    // back-reference so raycasting code (GrabSystem) can look up the owning
+    // item in O(1) regardless of hit depth, instead of matching object
+    // identity against a flat list.
+    item.mesh?.traverse((child) => {
+      child.userData.interactionItem = item;
+    });
     return item;
   }
 

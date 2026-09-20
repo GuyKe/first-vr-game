@@ -6,12 +6,13 @@ The player spawns at sunrise at the edge of a sand clearing in the middle of
 a forest that's noticeably larger than you are. Trees ring the clearing on
 every side; a bonfire sits cold at its center. Sticks and rocks are
 scattered around — pick sticks up and feed them to the fire to light it and
-push back the dark; each stick buys about a minute of burn time. The sky
-cycles through a full day and night as you play.
+push back the dark; each stick buys about a minute of burn time. Collect 3
+stones and a stone axe appears by the fire — equip it to start chopping
+trees for wood. The sky cycles through a full day and night as you play.
 
-This is a starting scene, not a full game yet. Good next steps: a reason to
-venture into the tree line, more uses for rocks, a way to see how much fuel
-is left without standing at the fire, ambient sound.
+This is a starting scene, not a full game yet. Good next steps: something to
+build or craft with the wood, more uses for rocks, a way to see how much
+fuel is left without standing at the fire, ambient sound.
 
 ## Running it
 
@@ -25,8 +26,9 @@ bonfire, **TUTORIAL** takes you to a bare practice platform where you walk to
 a glowing dot to learn the controls, then return to the menu automatically.
 
 On desktop, click into the window and use **WASD** to walk and **mouse
-drag** to look around. Walk up to a stick, rock, or the bonfire and press
-**E** to interact — a prompt appears whenever something is in reach.
+drag** to look around. Walk up to a stick, rock, the bonfire, the stone axe,
+or a tree (once equipped) and press **E** to interact — a prompt appears
+whenever something is in reach.
 
 ## Testing on a Meta Quest headset
 
@@ -44,7 +46,9 @@ at PLAY or TUTORIAL and pull the trigger to select. Movement is smooth
 joystick locomotion: push the left thumbstick to walk in the direction
 you're looking. Point at a stick or rock and a line appears — hold the
 trigger and it flies into your hand. Walk up to the bonfire and pull the
-trigger to feed it a stick.
+trigger to feed it a stick. Once you have 3 stones, do the same with the
+stone axe by the fire — it stays in your hand, and pulling the trigger near
+a tree chops it for wood.
 
 ## Project structure
 
@@ -61,6 +65,7 @@ src/
   gameplay/
     interactions.js          Shared "nearby + press to interact" system
     pickups.js                 Scattered stick/rock pickups
+    axe.js                      Stone axe model (crafted at 3 stones)
   ui/
     domMenu.js               Flat-screen HTML main menu overlay
     worldMenu.js              In-world 3D main menu, shown inside VR sessions

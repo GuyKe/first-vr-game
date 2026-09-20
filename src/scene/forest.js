@@ -19,6 +19,10 @@ function mulberry32(seed) {
  * Scatters low-poly pine-like trees in the ring between the sand clearing
  * and the forest's outer radius, using instanced meshes for trunks and
  * foliage so a few hundred trees stay cheap on Quest's mobile GPU.
+ *
+ * Returns each tree's local (pre-world-scale) base position, so callers can
+ * register chop interactables without needing individually addressable
+ * tree objects (which InstancedMesh doesn't provide).
  */
 export function buildForest(scene) {
   const rand = mulberry32(1337);
@@ -42,6 +46,7 @@ export function buildForest(scene) {
   foliage.castShadow = true;
 
   const dummy = new THREE.Object3D();
+  const treePositions = [];
 
   for (let i = 0; i < TREE_COUNT; i++) {
     const angle = rand() * Math.PI * 2;
@@ -61,10 +66,14 @@ export function buildForest(scene) {
     dummy.position.set(x, 2.6 * scale, z);
     dummy.updateMatrix();
     foliage.setMatrixAt(i, dummy.matrix);
+
+    treePositions.push({ x, z });
   }
 
   trunks.instanceMatrix.needsUpdate = true;
   foliage.instanceMatrix.needsUpdate = true;
 
   scene.add(trunks, foliage);
+
+  return treePositions;
 }
