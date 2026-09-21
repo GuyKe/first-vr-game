@@ -14,6 +14,7 @@ import { WorldMenu } from "./ui/worldMenu.js";
 import { InteractionManager } from "./gameplay/interactions.js";
 import { buildPickups } from "./gameplay/pickups.js";
 import { buildAxeMesh } from "./gameplay/axe.js";
+import { Wendigo } from "./gameplay/wendigo.js";
 
 const FOREST_SPAWN_POSITION = new THREE.Vector3(0, 1.6, 3.5);
 const FOREST_SPAWN_YAW = Math.PI;
@@ -22,6 +23,7 @@ const AXE_STONE_REQUIREMENT = 3;
 const AXE_LOCAL_SPAWN_POSITION = new THREE.Vector3(1.4, 0.02, 0.6);
 const AXE_PICKUP_RADIUS = 1.3;
 const CHOP_RADIUS = 2.0;
+const NIGHT_START_T = 0.55; // fraction of the day/night cycle when the wendigo comes out
 
 const scene = new THREE.Scene();
 
@@ -60,10 +62,12 @@ worldGroup.scale.setScalar(WORLD_SCALE);
 scene.add(worldGroup);
 
 buildEnvironment(worldGroup);
-const treePositions = buildForest(worldGroup);
+const { treePositions, removeTree } = buildForest(worldGroup);
 
 const bonfire = new Bonfire();
 worldGroup.add(bonfire.group);
+
+const wendigo = new Wendigo(scene, dolly);
 
 // The tutorial platform is a separate isolated space, deliberately left
 // outside worldGroup so its spawn/dot coordinates stay simple (unscaled,
@@ -98,16 +102,18 @@ let hasAxe = false;
 let axeSpawned = false;
 
 function enableTreeChopping() {
-  for (const { x, z } of treePositions) {
-    interactions.register({
+  treePositions.forEach(({ x, z }, index) => {
+    const treeItem = interactions.register({
       position: new THREE.Vector3(x * WORLD_SCALE, 0, z * WORLD_SCALE),
       radius: CHOP_RADIUS,
       getLabel: () => "Press E to chop (+1 wood)",
       onInteract: () => {
         inventory.wood += 1;
+        removeTree(index);
+        interactions.unregister(treeItem);
       },
     });
-  }
+  });
 }
 
 /** Crafted from 3 stones, appears by the fire. Grab it (VR) or walk up and
@@ -156,6 +162,8 @@ grabSystem.enabled = false;
 const infoEl = document.getElementById("info");
 const promptEl = document.getElementById("prompt");
 const hudEl = document.getElementById("hud");
+const fireBarEl = document.getElementById("fire-bar");
+const fireSegmentEls = Array.from(fireBarEl.querySelectorAll(".fire-segment"));
 
 let mode = "menu"; // "menu" | "play" | "tutorial"
 
@@ -175,6 +183,8 @@ function enterMenu() {
   infoEl.textContent = "Fifi's Forest";
   promptEl.classList.remove("visible");
   hudEl.classList.remove("visible");
+  fireBarEl.classList.remove("visible");
+  wendigo.setActive(false);
   // Pointer lock routes all clicks to the locked element (the canvas)
   // regardless of what's visually on top, so the menu buttons underneath
   // would never receive clicks if we left it engaged.
@@ -196,6 +206,7 @@ function enterPlay() {
   grabSystem.enabled = true;
   infoEl.textContent = "Fifi's Forest";
   hudEl.classList.add("visible");
+  fireBarEl.classList.add("visible");
   if (!renderer.xr.isPresenting) {
     desktopControls.enabled = true;
     renderer.domElement.requestPointerLock();
@@ -210,6 +221,8 @@ function enterTutorial() {
   grabSystem.enabled = false;
   infoEl.textContent = "Walk to the glowing dot";
   hudEl.classList.remove("visible");
+  fireBarEl.classList.remove("visible");
+  wendigo.setActive(false);
   desktopControls.resetOrientation(0, 0);
   walkTutorial.show(enterMenu);
   if (!renderer.xr.isPresenting) {
@@ -303,6 +316,12 @@ renderer.setAnimationLoop(() => {
       spawnAxe();
     }
     hudEl.textContent = `Sticks: ${inventory.sticks}   Stone: ${inventory.rocks}   Wood: ${inventory.wood}`;
+
+    const level = bonfire.level;
+    fireSegmentEls.forEach((el, i) => el.classList.toggle("filled", i < level));
+
+    wendigo.setActive(dayNight.t >= NIGHT_START_T);
+    wendigo.update(delta, bonfire.lightRadius * WORLD_SCALE);
   }
 
   renderer.render(scene, camera);

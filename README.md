@@ -6,13 +6,16 @@ The player spawns at sunrise at the edge of a sand clearing in the middle of
 a forest that's noticeably larger than you are. Trees ring the clearing on
 every side; a bonfire sits cold at its center. Sticks and rocks are
 scattered around — pick sticks up and feed them to the fire to light it and
-push back the dark; each stick buys about a minute of burn time. Collect 3
-stones and a stone axe appears by the fire — equip it to start chopping
-trees for wood. The sky cycles through a full day and night as you play.
+push back the dark; a 5-segment bar tracks how well-fed it is, and each
+level pushes the firelight further out. Collect 3 stones and a stone axe
+appears by the fire — equip it to start chopping trees for wood (each tree
+is a one-time resource). The day/night cycle now runs on a 2-minute loop,
+and once night falls a wendigo wanders the dark tree line near you, kept
+out of the fire's light by its own avoidance logic.
 
 This is a starting scene, not a full game yet. Good next steps: something to
-build or craft with the wood, more uses for rocks, a way to see how much
-fuel is left without standing at the fire, ambient sound.
+build or craft with the wood, more uses for rocks, giving the wendigo some
+actual consequence if it gets close, ambient sound.
 
 ## Running it
 
@@ -66,6 +69,7 @@ src/
     interactions.js          Shared "nearby + press to interact" system
     pickups.js                 Scattered stick/rock pickups
     axe.js                      Stone axe model (crafted at 3 stones)
+    wendigo.js                   Nocturnal creature, avoids the fire's light
   ui/
     domMenu.js               Flat-screen HTML main menu overlay
     worldMenu.js              In-world 3D main menu, shown inside VR sessions

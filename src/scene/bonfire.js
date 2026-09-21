@@ -25,6 +25,12 @@ function makeGlowTexture(innerColor, outerColor) {
 
 const EMBER_COUNT = 60;
 export const SECONDS_PER_STICK = 60;
+export const MAX_FIRE_LEVEL = 5;
+const MAX_FUEL_SECONDS = MAX_FIRE_LEVEL * SECONDS_PER_STICK;
+const LIGHT_DISTANCE_MIN = 6;
+const LIGHT_DISTANCE_MAX = 16;
+const LIGHT_INTENSITY_MIN = 6;
+const LIGHT_INTENSITY_MAX = 12;
 
 export class Bonfire {
   constructor() {
@@ -41,6 +47,20 @@ export class Bonfire {
     this.isLit = false;
     this.remainingSeconds = 0;
     this.fireGroup.visible = false;
+    this._lightDistance = LIGHT_DISTANCE_MIN;
+  }
+
+  /** Discrete 0-5 fuel level, driving the on-screen fire bar. */
+  get level() {
+    if (!this.isLit) return 0;
+    return Math.min(MAX_FIRE_LEVEL, Math.ceil(this.remainingSeconds / SECONDS_PER_STICK));
+  }
+
+  /** Current light reach in local (pre-WORLD_SCALE) units — 0 when unlit,
+   *  growing smoothly with fuel up to the level-5 cap. This is "the circle
+   *  of the fire" other systems (the wendigo) treat as a safe boundary. */
+  get lightRadius() {
+    return this.isLit ? this._lightDistance : 0;
   }
 
   /** Feeds the fire, igniting it if it was out. Each stick adds burn time. */
@@ -130,7 +150,7 @@ export class Bonfire {
   }
 
   _buildLight() {
-    this.light = new THREE.PointLight(0xff7a29, 6, 18, 2);
+    this.light = new THREE.PointLight(0xff7a29, LIGHT_INTENSITY_MIN, LIGHT_DISTANCE_MIN, 2);
     this.light.position.y = 1.1;
     this.light.castShadow = true;
     this.fireGroup.add(this.light);
@@ -149,20 +169,32 @@ export class Bonfire {
 
     this._clock += delta;
 
+    // How full the fire is (0-1, capped at the level-5 fuel amount) drives
+    // a smooth expansion of the light's reach/brightness and flame size,
+    // independent of the discrete 0-5 level shown on the HUD bar.
+    const fuelFraction = Math.min(this.remainingSeconds, MAX_FUEL_SECONDS) / MAX_FUEL_SECONDS;
+    this._lightDistance =
+      LIGHT_DISTANCE_MIN + fuelFraction * (LIGHT_DISTANCE_MAX - LIGHT_DISTANCE_MIN);
+    const targetIntensity =
+      LIGHT_INTENSITY_MIN + fuelFraction * (LIGHT_INTENSITY_MAX - LIGHT_INTENSITY_MIN);
+    const flameSizeMultiplier = 0.8 + fuelFraction * 0.6;
+
+    this.light.distance = this._lightDistance;
+
     // Flicker the light and flame scale with layered sine noise.
     const flicker =
       0.85 +
       0.1 * Math.sin(elapsed * 13.7) +
       0.08 * Math.sin(elapsed * 27.1 + 1.3) +
       0.05 * Math.sin(elapsed * 5.3);
-    this.light.intensity = 6 * flicker;
+    this.light.intensity = targetIntensity * flicker;
 
     for (let i = 0; i < this.flameSprites.length; i++) {
       const s = this.flameSprites[i];
       const wobble = Math.sin(elapsed * (6 + i * 2) + i) * 0.08;
       s.position.x = wobble;
       s.position.z = Math.cos(elapsed * (5 + i) + i) * 0.06;
-      const baseScale = 1.1 - i * 0.25;
+      const baseScale = (1.1 - i * 0.25) * flameSizeMultiplier;
       const scaleFlicker = baseScale * (0.9 + 0.15 * Math.sin(elapsed * 9 + i * 2));
       s.scale.set(scaleFlicker, scaleFlicker * 1.4, 1);
     }

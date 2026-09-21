@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-const CYCLE_SECONDS = 480; // one full day/night cycle = 8 real minutes
+const CYCLE_SECONDS = 120; // one full day/night cycle = 2 real minutes
 const SUN_RADIUS = 60;
 
 // Four evenly-spaced keyframes (sunrise, noon, sunset, midnight). The cycle

@@ -22,7 +22,9 @@ function mulberry32(seed) {
  *
  * Returns each tree's local (pre-world-scale) base position, so callers can
  * register chop interactables without needing individually addressable
- * tree objects (which InstancedMesh doesn't provide).
+ * tree objects (which InstancedMesh doesn't provide) — plus a removeTree(i)
+ * to hide a chopped tree by collapsing its instance to zero scale (the
+ * instance count is fixed, so this is the way to "delete" one).
  */
 export function buildForest(scene) {
   const rand = mulberry32(1337);
@@ -75,5 +77,13 @@ export function buildForest(scene) {
 
   scene.add(trunks, foliage);
 
-  return treePositions;
+  const zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
+  function removeTree(index) {
+    trunks.setMatrixAt(index, zeroMatrix);
+    foliage.setMatrixAt(index, zeroMatrix);
+    trunks.instanceMatrix.needsUpdate = true;
+    foliage.instanceMatrix.needsUpdate = true;
+  }
+
+  return { treePositions, removeTree };
 }

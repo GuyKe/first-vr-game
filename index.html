@@ -137,12 +137,56 @@
       #hud.visible {
         display: block;
       }
+
+      #fire-bar {
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        z-index: 1;
+        display: none;
+        align-items: center;
+        gap: 6px;
+        pointer-events: none;
+      }
+
+      #fire-bar.visible {
+        display: flex;
+      }
+
+      #fire-bar .fire-label {
+        color: #f2e8d5;
+        font-family: system-ui, sans-serif;
+        font-size: 12px;
+        text-shadow: 0 0 6px #000;
+        margin-right: 4px;
+      }
+
+      #fire-bar .fire-segment {
+        width: 14px;
+        height: 22px;
+        border-radius: 3px;
+        border: 1px solid rgba(255, 154, 61, 0.5);
+        background: rgba(10, 8, 6, 0.5);
+      }
+
+      #fire-bar .fire-segment.filled {
+        background: linear-gradient(180deg, #ffb960, #ff7a29);
+        box-shadow: 0 0 8px rgba(255, 122, 41, 0.7);
+      }
     </style>
   </head>
   <body>
     <div id="info">Fifi's Forest</div>
     <div id="prompt"></div>
     <div id="hud"></div>
+    <div id="fire-bar">
+      <span class="fire-label">Fire</span>
+      <div class="fire-segment"></div>
+      <div class="fire-segment"></div>
+      <div class="fire-segment"></div>
+      <div class="fire-segment"></div>
+      <div class="fire-segment"></div>
+    </div>
 
     <div id="menu-overlay">
       <div class="menu-panel" id="main-menu">
